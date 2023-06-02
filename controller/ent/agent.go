@@ -20,8 +20,29 @@ type Agent struct {
 	// Hostname holds the value of the "hostname" field.
 	Hostname string `json:"hostname,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
-	CreatedAt    time.Time `json:"created_at,omitempty"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the AgentQuery when eager-loading is set.
+	Edges        AgentEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// AgentEdges holds the relations/edges for other nodes in the graph.
+type AgentEdges struct {
+	// Tags holds the value of the tags edge.
+	Tags []*Tag `json:"tags,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// TagsOrErr returns the Tags value or an error if the edge
+// was not loaded in eager-loading.
+func (e AgentEdges) TagsOrErr() ([]*Tag, error) {
+	if e.loadedTypes[0] {
+		return e.Tags, nil
+	}
+	return nil, &NotLoadedError{edge: "tags"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -79,6 +100,11 @@ func (a *Agent) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (a *Agent) Value(name string) (ent.Value, error) {
 	return a.selectValues.Get(name)
+}
+
+// QueryTags queries the "tags" edge of the Agent entity.
+func (a *Agent) QueryTags() *TagQuery {
+	return NewAgentClient(a.config).QueryTags(a)
 }
 
 // Update returns a builder for updating this Agent.

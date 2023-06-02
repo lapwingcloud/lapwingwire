@@ -57,5 +57,7 @@ func main() {
 	}))
 
 	rest.NewHandler(db).RegisterRoutes(router)
-	http.ListenAndServe(":3000", router)
+	if err = http.ListenAndServe(":3000", router); err != nil {
+		logger.Fatal().Err(err).Msg("http server exited unexpectedly")
+	}
 }

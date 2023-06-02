@@ -11,7 +11,7 @@ var (
 	// AgentsColumns holds the columns for the "agents" table.
 	AgentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "hostname", Type: field.TypeString},
+		{Name: "hostname", Type: field.TypeString, Unique: true},
 		{Name: "created_at", Type: field.TypeTime},
 	}
 	// AgentsTable holds the schema information for the "agents" table.
@@ -20,11 +20,51 @@ var (
 		Columns:    AgentsColumns,
 		PrimaryKey: []*schema.Column{AgentsColumns[0]},
 	}
+	// TagsColumns holds the columns for the "tags" table.
+	TagsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString, Unique: true},
+	}
+	// TagsTable holds the schema information for the "tags" table.
+	TagsTable = &schema.Table{
+		Name:       "tags",
+		Columns:    TagsColumns,
+		PrimaryKey: []*schema.Column{TagsColumns[0]},
+	}
+	// AgentTagsColumns holds the columns for the "agent_tags" table.
+	AgentTagsColumns = []*schema.Column{
+		{Name: "agent_id", Type: field.TypeInt},
+		{Name: "tag_id", Type: field.TypeInt},
+	}
+	// AgentTagsTable holds the schema information for the "agent_tags" table.
+	AgentTagsTable = &schema.Table{
+		Name:       "agent_tags",
+		Columns:    AgentTagsColumns,
+		PrimaryKey: []*schema.Column{AgentTagsColumns[0], AgentTagsColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "agent_tags_agent_id",
+				Columns:    []*schema.Column{AgentTagsColumns[0]},
+				RefColumns: []*schema.Column{AgentsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "agent_tags_tag_id",
+				Columns:    []*schema.Column{AgentTagsColumns[1]},
+				RefColumns: []*schema.Column{TagsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AgentsTable,
+		TagsTable,
+		AgentTagsTable,
 	}
 )
 
 func init() {
+	AgentTagsTable.ForeignKeys[0].RefTable = AgentsTable
+	AgentTagsTable.ForeignKeys[1].RefTable = TagsTable
 }

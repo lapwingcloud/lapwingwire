@@ -61,6 +61,11 @@ func (t *Response) InternalServerError() *Response {
 	return t
 }
 
+func (t *Response) NotImplemented() *Response {
+	t.Status = http.StatusNotImplemented
+	return t
+}
+
 func (t *Response) Err(err error) *Response {
 	t.Error = err.Error()
 	return t

@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/lapwingcloud/lapwingwire/controller/ent/agent"
+	"github.com/lapwingcloud/lapwingwire/controller/ent/tag"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -74,6 +75,7 @@ func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			agent.Table: agent.ValidColumn,
+			tag.Table:   tag.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

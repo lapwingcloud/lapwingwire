@@ -7,6 +7,7 @@ import (
 
 	"github.com/lapwingcloud/lapwingwire/controller/ent/agent"
 	"github.com/lapwingcloud/lapwingwire/controller/ent/schema"
+	"github.com/lapwingcloud/lapwingwire/controller/ent/tag"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -23,4 +24,10 @@ func init() {
 	agentDescCreatedAt := agentFields[1].Descriptor()
 	// agent.DefaultCreatedAt holds the default value on creation for the created_at field.
 	agent.DefaultCreatedAt = agentDescCreatedAt.Default.(func() time.Time)
+	tagFields := schema.Tag{}.Fields()
+	_ = tagFields
+	// tagDescName is the schema descriptor for name field.
+	tagDescName := tagFields[0].Descriptor()
+	// tag.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	tag.NameValidator = tagDescName.Validators[0].(func(string) error)
 }

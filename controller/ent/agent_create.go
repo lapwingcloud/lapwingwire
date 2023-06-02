@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/lapwingcloud/lapwingwire/controller/ent/agent"
+	"github.com/lapwingcloud/lapwingwire/controller/ent/tag"
 )
 
 // AgentCreate is the builder for creating a Agent entity.
@@ -38,6 +39,21 @@ func (ac *AgentCreate) SetNillableCreatedAt(t *time.Time) *AgentCreate {
 		ac.SetCreatedAt(*t)
 	}
 	return ac
+}
+
+// AddTagIDs adds the "tags" edge to the Tag entity by IDs.
+func (ac *AgentCreate) AddTagIDs(ids ...int) *AgentCreate {
+	ac.mutation.AddTagIDs(ids...)
+	return ac
+}
+
+// AddTags adds the "tags" edges to the Tag entity.
+func (ac *AgentCreate) AddTags(t ...*Tag) *AgentCreate {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return ac.AddTagIDs(ids...)
 }
 
 // Mutation returns the AgentMutation object of the builder.
@@ -127,6 +143,22 @@ func (ac *AgentCreate) createSpec() (*Agent, *sqlgraph.CreateSpec) {
 	if value, ok := ac.mutation.CreatedAt(); ok {
 		_spec.SetField(agent.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
+	}
+	if nodes := ac.mutation.TagsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   agent.TagsTable,
+			Columns: agent.TagsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tag.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

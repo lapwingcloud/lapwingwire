@@ -8,3 +8,6 @@ import (
 
 // Agent is the predicate function for agent builders.
 type Agent func(*sql.Selector)
+
+// Tag is the predicate function for tag builders.
+type Tag func(*sql.Selector)

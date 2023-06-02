@@ -1,14 +1,16 @@
 package rest
 
 import (
+	"encoding/json"
 	"net/http"
 
-	"github.com/rs/zerolog/hlog"
+	"github.com/lapwingcloud/lapwingwire/controller/ent"
 )
 
 type Agent struct {
-	ID       string `json:"id"`
-	Hostname string `json:"hostname"`
+	ID       string   `json:"id"`
+	Hostname string   `json:"hostname"`
+	Tags     []string `json:"tags"`
 }
 
 type AgentHandler interface {
@@ -24,26 +26,35 @@ func (t *PutAgentRequest) Bind(r *http.Request) error {
 }
 
 func (t *handler) PutAgent(w http.ResponseWriter, r *http.Request) {
-	// ctx := r.Context()
-	// data := &PutAgentRequest{}
-	// if err := render.Bind(r, data); err != nil {
-	// 	if err := render.Render(w, r, ErrBadRequest(err)); err != nil {
-	// 		_ = render.Render(w, r, ErrUnprocessableContent(err))
-	// 	}
-	// 	return
-	// }
-	// if data.ID == "" {
-	// 	t.db.Agent.Create().SetHostname(data.Hostname).Save(ctx)
-	// } else {
-	// 	agentID, err := strconv.Atoi(data.ID)
-	// 	// if err != nil {
-	// 	// 	return ErrBadRequest(err)
-	// 	// }
-	// 	_, err = t.db.Agent.Query().Where(agent.ID(agentID)).First(ctx)
-	// 	if err != nil {
-
-	// 	}
-	// }
-	hlog.FromRequest(r).Warn().Msg("asdasdqlkwejqlwkej")
-	NewResponse(w, r).BadRequest().Msg("hello")
+	ctx := r.Context()
+	data := &PutAgentRequest{}
+	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
+		NewResponse(w, r).BadRequest().Err(err).Msg("failed to decode request body to json")
+		return
+	}
+	if data.ID == "" {
+		tagCreates := make([]*ent.TagCreate, len(data.Tags))
+		for i, tagName := range data.Tags {
+			tagCreates[i] = t.db.Tag.Create().SetName(tagName)
+		}
+		tags, err := t.db.Tag.CreateBulk(tagCreates...).Save(ctx)
+		if err != nil {
+			NewResponse(w, r).BadRequest().Err(err).Msg("failed to create tags")
+			return
+		}
+		agent, err := t.db.Agent.
+			Create().
+			SetHostname(data.Hostname).
+			AddTags(tags...).
+			Save(ctx)
+		if err != nil {
+			NewResponse(w, r).BadRequest().Err(err).Msg("failed to create the agent")
+			return
+		}
+		NewResponse(w, r).OK().Data(agent)
+		return
+	} else {
+		NewResponse(w, r).NotImplemented().Msg("not implemented")
+		return
+	}
 }
