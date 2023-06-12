@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// Agent is the client for interacting with the Agent builders.
 	Agent *AgentClient
+	// OIDCConfig is the client for interacting with the OIDCConfig builders.
+	OIDCConfig *OIDCConfigClient
 	// Tag is the client for interacting with the Tag builders.
 	Tag *TagClient
 
@@ -148,6 +150,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Agent = NewAgentClient(tx.config)
+	tx.OIDCConfig = NewOIDCConfigClient(tx.config)
 	tx.Tag = NewTagClient(tx.config)
 }
 

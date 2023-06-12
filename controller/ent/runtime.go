@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/lapwingcloud/lapwingwire/controller/ent/agent"
+	"github.com/lapwingcloud/lapwingwire/controller/ent/oidcconfig"
 	"github.com/lapwingcloud/lapwingwire/controller/ent/schema"
 	"github.com/lapwingcloud/lapwingwire/controller/ent/tag"
 )
@@ -24,10 +25,40 @@ func init() {
 	agentDescCreatedAt := agentFields[1].Descriptor()
 	// agent.DefaultCreatedAt holds the default value on creation for the created_at field.
 	agent.DefaultCreatedAt = agentDescCreatedAt.Default.(func() time.Time)
+	oidcconfigFields := schema.OIDCConfig{}.Fields()
+	_ = oidcconfigFields
+	// oidcconfigDescProviderKey is the schema descriptor for provider_key field.
+	oidcconfigDescProviderKey := oidcconfigFields[0].Descriptor()
+	// oidcconfig.ProviderKeyValidator is a validator for the "provider_key" field. It is called by the builders before save.
+	oidcconfig.ProviderKeyValidator = oidcconfigDescProviderKey.Validators[0].(func(string) error)
+	// oidcconfigDescProviderName is the schema descriptor for provider_name field.
+	oidcconfigDescProviderName := oidcconfigFields[1].Descriptor()
+	// oidcconfig.ProviderNameValidator is a validator for the "provider_name" field. It is called by the builders before save.
+	oidcconfig.ProviderNameValidator = oidcconfigDescProviderName.Validators[0].(func(string) error)
+	// oidcconfigDescDiscoveryURI is the schema descriptor for discovery_uri field.
+	oidcconfigDescDiscoveryURI := oidcconfigFields[2].Descriptor()
+	// oidcconfig.DiscoveryURIValidator is a validator for the "discovery_uri" field. It is called by the builders before save.
+	oidcconfig.DiscoveryURIValidator = oidcconfigDescDiscoveryURI.Validators[0].(func(string) error)
+	// oidcconfigDescClientID is the schema descriptor for client_id field.
+	oidcconfigDescClientID := oidcconfigFields[3].Descriptor()
+	// oidcconfig.ClientIDValidator is a validator for the "client_id" field. It is called by the builders before save.
+	oidcconfig.ClientIDValidator = oidcconfigDescClientID.Validators[0].(func(string) error)
+	// oidcconfigDescClientSecret is the schema descriptor for client_secret field.
+	oidcconfigDescClientSecret := oidcconfigFields[4].Descriptor()
+	// oidcconfig.ClientSecretValidator is a validator for the "client_secret" field. It is called by the builders before save.
+	oidcconfig.ClientSecretValidator = oidcconfigDescClientSecret.Validators[0].(func(string) error)
+	// oidcconfigDescRedirectURI is the schema descriptor for redirect_uri field.
+	oidcconfigDescRedirectURI := oidcconfigFields[5].Descriptor()
+	// oidcconfig.RedirectURIValidator is a validator for the "redirect_uri" field. It is called by the builders before save.
+	oidcconfig.RedirectURIValidator = oidcconfigDescRedirectURI.Validators[0].(func(string) error)
 	tagFields := schema.Tag{}.Fields()
 	_ = tagFields
 	// tagDescName is the schema descriptor for name field.
 	tagDescName := tagFields[0].Descriptor()
 	// tag.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	tag.NameValidator = tagDescName.Validators[0].(func(string) error)
+	// tagDescValue is the schema descriptor for value field.
+	tagDescValue := tagFields[1].Descriptor()
+	// tag.ValueValidator is a validator for the "value" field. It is called by the builders before save.
+	tag.ValueValidator = tagDescValue.Validators[0].(func(string) error)
 }

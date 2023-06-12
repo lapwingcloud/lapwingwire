@@ -5,56 +5,92 @@ import (
 	"net/http"
 
 	"github.com/lapwingcloud/lapwingwire/controller/ent"
+	"github.com/lapwingcloud/lapwingwire/controller/ent/agent"
+	"github.com/lapwingcloud/lapwingwire/controller/ent/predicate"
+	"github.com/lapwingcloud/lapwingwire/controller/ent/tag"
 )
 
 type Agent struct {
-	ID       string   `json:"id"`
-	Hostname string   `json:"hostname"`
-	Tags     []string `json:"tags"`
-}
-
-type AgentHandler interface {
-	PutAgent(http.ResponseWriter, *http.Request)
-}
-
-type PutAgentRequest struct {
-	Agent
-}
-
-func (t *PutAgentRequest) Bind(r *http.Request) error {
-	return nil
+	ID       int    `json:"id"`
+	Hostname string `json:"hostname"`
+	Tags     []Tag  `json:"tags"`
 }
 
 func (t *handler) PutAgent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	data := &PutAgentRequest{}
-	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
-		NewResponse(w, r).BadRequest().Err(err).Msg("failed to decode request body to json")
+	rw := NewResponder(w, r)
+
+	var req struct {
+		Agent
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		rw.BadRequest().Err(err).Msg("failed to decode request body to json")
 		return
 	}
-	if data.ID == "" {
-		tagCreates := make([]*ent.TagCreate, len(data.Tags))
-		for i, tagName := range data.Tags {
-			tagCreates[i] = t.db.Tag.Create().SetName(tagName)
+	tagAnds := make([]predicate.Tag, len(req.Tags))
+	for i, tagData := range req.Tags {
+		tagAnds[i] = tag.And(tag.Name(tagData.Name), tag.Value(tagData.Value))
+	}
+	existingTagEnts, err := t.db.Tag.Query().Where(tag.Or(tagAnds...)).All(ctx)
+	if err != nil {
+		rw.InternalServerError().Err(err).Msg("failed to query existing tags")
+		return
+	}
+	existingTagMap := make(map[string]string, len(existingTagEnts))
+	for _, tg := range existingTagEnts {
+		existingTagMap[tg.Name] = tg.Value
+	}
+	tagCreates := []*ent.TagCreate{}
+	for _, tagData := range req.Tags {
+		if existingValue, ok := existingTagMap[tagData.Name]; ok && tagData.Value == existingValue {
+			continue
 		}
-		tags, err := t.db.Tag.CreateBulk(tagCreates...).Save(ctx)
-		if err != nil {
-			NewResponse(w, r).BadRequest().Err(err).Msg("failed to create tags")
-			return
-		}
-		agent, err := t.db.Agent.
+		tagCreates = append(tagCreates, t.db.Tag.Create().SetName(tagData.Name).SetValue(tagData.Value))
+	}
+	newTagEnts, err := t.db.Tag.CreateBulk(tagCreates...).Save(ctx)
+	if err != nil {
+		rw.InternalServerError().Err(err).Msg("failed to create tags")
+		return
+	}
+	var agentEnt *ent.Agent
+	if req.ID == 0 {
+		agentEnt, err = t.db.Agent.
 			Create().
-			SetHostname(data.Hostname).
-			AddTags(tags...).
+			SetHostname(req.Hostname).
+			AddTags(existingTagEnts...).
+			AddTags(newTagEnts...).
 			Save(ctx)
 		if err != nil {
-			NewResponse(w, r).BadRequest().Err(err).Msg("failed to create the agent")
+			rw.BadRequest().Err(err).Msg("failed to create the agent")
 			return
 		}
-		NewResponse(w, r).OK().Data(agent)
-		return
 	} else {
-		NewResponse(w, r).NotImplemented().Msg("not implemented")
-		return
+		agentEnt, err = t.db.Agent.Query().Where(agent.ID(req.ID)).First(ctx)
+		if err != nil {
+			rw.InternalServerError().Err(err).Msg("failed to query agent")
+			return
+		}
+		if agentEnt == nil {
+			rw.NotFound().Msg("agent not found")
+			return
+		}
+		agentEnt, err = t.db.Agent.
+			UpdateOne(agentEnt).
+			SetHostname(req.Hostname).
+			ClearTags().
+			AddTags(existingTagEnts...).
+			AddTags(newTagEnts...).
+			Save(ctx)
+		if err != nil {
+			rw.BadRequest().Err(err).Msg("failed to update the agent")
+			return
+		}
 	}
+	// rw.OK().Data(PutAgentResponse{
+	// 	Agent: Agent{
+	// 		ID:       agentEnt.ID,
+	// 		Hostname: agentEnt.Hostname,
+	// 	},
+	// })
+	rw.OK().Data(agentEnt)
 }

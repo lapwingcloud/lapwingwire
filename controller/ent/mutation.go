@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/lapwingcloud/lapwingwire/controller/ent/agent"
+	"github.com/lapwingcloud/lapwingwire/controller/ent/oidcconfig"
 	"github.com/lapwingcloud/lapwingwire/controller/ent/predicate"
 	"github.com/lapwingcloud/lapwingwire/controller/ent/tag"
 )
@@ -25,8 +26,9 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeAgent = "Agent"
-	TypeTag   = "Tag"
+	TypeAgent      = "Agent"
+	TypeOIDCConfig = "OIDCConfig"
+	TypeTag        = "Tag"
 )
 
 // AgentMutation represents an operation that mutates the Agent nodes in the graph.
@@ -502,6 +504,602 @@ func (m *AgentMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown Agent edge %s", name)
 }
 
+// OIDCConfigMutation represents an operation that mutates the OIDCConfig nodes in the graph.
+type OIDCConfigMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	provider_key  *string
+	provider_name *string
+	discovery_uri *string
+	client_id     *string
+	client_secret *string
+	redirect_uri  *string
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*OIDCConfig, error)
+	predicates    []predicate.OIDCConfig
+}
+
+var _ ent.Mutation = (*OIDCConfigMutation)(nil)
+
+// oidcconfigOption allows management of the mutation configuration using functional options.
+type oidcconfigOption func(*OIDCConfigMutation)
+
+// newOIDCConfigMutation creates new mutation for the OIDCConfig entity.
+func newOIDCConfigMutation(c config, op Op, opts ...oidcconfigOption) *OIDCConfigMutation {
+	m := &OIDCConfigMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeOIDCConfig,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withOIDCConfigID sets the ID field of the mutation.
+func withOIDCConfigID(id int) oidcconfigOption {
+	return func(m *OIDCConfigMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *OIDCConfig
+		)
+		m.oldValue = func(ctx context.Context) (*OIDCConfig, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().OIDCConfig.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withOIDCConfig sets the old OIDCConfig of the mutation.
+func withOIDCConfig(node *OIDCConfig) oidcconfigOption {
+	return func(m *OIDCConfigMutation) {
+		m.oldValue = func(context.Context) (*OIDCConfig, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m OIDCConfigMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m OIDCConfigMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *OIDCConfigMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *OIDCConfigMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().OIDCConfig.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetProviderKey sets the "provider_key" field.
+func (m *OIDCConfigMutation) SetProviderKey(s string) {
+	m.provider_key = &s
+}
+
+// ProviderKey returns the value of the "provider_key" field in the mutation.
+func (m *OIDCConfigMutation) ProviderKey() (r string, exists bool) {
+	v := m.provider_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProviderKey returns the old "provider_key" field's value of the OIDCConfig entity.
+// If the OIDCConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OIDCConfigMutation) OldProviderKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProviderKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProviderKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProviderKey: %w", err)
+	}
+	return oldValue.ProviderKey, nil
+}
+
+// ResetProviderKey resets all changes to the "provider_key" field.
+func (m *OIDCConfigMutation) ResetProviderKey() {
+	m.provider_key = nil
+}
+
+// SetProviderName sets the "provider_name" field.
+func (m *OIDCConfigMutation) SetProviderName(s string) {
+	m.provider_name = &s
+}
+
+// ProviderName returns the value of the "provider_name" field in the mutation.
+func (m *OIDCConfigMutation) ProviderName() (r string, exists bool) {
+	v := m.provider_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProviderName returns the old "provider_name" field's value of the OIDCConfig entity.
+// If the OIDCConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OIDCConfigMutation) OldProviderName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProviderName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProviderName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProviderName: %w", err)
+	}
+	return oldValue.ProviderName, nil
+}
+
+// ResetProviderName resets all changes to the "provider_name" field.
+func (m *OIDCConfigMutation) ResetProviderName() {
+	m.provider_name = nil
+}
+
+// SetDiscoveryURI sets the "discovery_uri" field.
+func (m *OIDCConfigMutation) SetDiscoveryURI(s string) {
+	m.discovery_uri = &s
+}
+
+// DiscoveryURI returns the value of the "discovery_uri" field in the mutation.
+func (m *OIDCConfigMutation) DiscoveryURI() (r string, exists bool) {
+	v := m.discovery_uri
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDiscoveryURI returns the old "discovery_uri" field's value of the OIDCConfig entity.
+// If the OIDCConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OIDCConfigMutation) OldDiscoveryURI(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDiscoveryURI is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDiscoveryURI requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDiscoveryURI: %w", err)
+	}
+	return oldValue.DiscoveryURI, nil
+}
+
+// ResetDiscoveryURI resets all changes to the "discovery_uri" field.
+func (m *OIDCConfigMutation) ResetDiscoveryURI() {
+	m.discovery_uri = nil
+}
+
+// SetClientID sets the "client_id" field.
+func (m *OIDCConfigMutation) SetClientID(s string) {
+	m.client_id = &s
+}
+
+// ClientID returns the value of the "client_id" field in the mutation.
+func (m *OIDCConfigMutation) ClientID() (r string, exists bool) {
+	v := m.client_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClientID returns the old "client_id" field's value of the OIDCConfig entity.
+// If the OIDCConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OIDCConfigMutation) OldClientID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClientID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClientID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClientID: %w", err)
+	}
+	return oldValue.ClientID, nil
+}
+
+// ResetClientID resets all changes to the "client_id" field.
+func (m *OIDCConfigMutation) ResetClientID() {
+	m.client_id = nil
+}
+
+// SetClientSecret sets the "client_secret" field.
+func (m *OIDCConfigMutation) SetClientSecret(s string) {
+	m.client_secret = &s
+}
+
+// ClientSecret returns the value of the "client_secret" field in the mutation.
+func (m *OIDCConfigMutation) ClientSecret() (r string, exists bool) {
+	v := m.client_secret
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClientSecret returns the old "client_secret" field's value of the OIDCConfig entity.
+// If the OIDCConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OIDCConfigMutation) OldClientSecret(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClientSecret is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClientSecret requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClientSecret: %w", err)
+	}
+	return oldValue.ClientSecret, nil
+}
+
+// ResetClientSecret resets all changes to the "client_secret" field.
+func (m *OIDCConfigMutation) ResetClientSecret() {
+	m.client_secret = nil
+}
+
+// SetRedirectURI sets the "redirect_uri" field.
+func (m *OIDCConfigMutation) SetRedirectURI(s string) {
+	m.redirect_uri = &s
+}
+
+// RedirectURI returns the value of the "redirect_uri" field in the mutation.
+func (m *OIDCConfigMutation) RedirectURI() (r string, exists bool) {
+	v := m.redirect_uri
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRedirectURI returns the old "redirect_uri" field's value of the OIDCConfig entity.
+// If the OIDCConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OIDCConfigMutation) OldRedirectURI(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRedirectURI is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRedirectURI requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRedirectURI: %w", err)
+	}
+	return oldValue.RedirectURI, nil
+}
+
+// ResetRedirectURI resets all changes to the "redirect_uri" field.
+func (m *OIDCConfigMutation) ResetRedirectURI() {
+	m.redirect_uri = nil
+}
+
+// Where appends a list predicates to the OIDCConfigMutation builder.
+func (m *OIDCConfigMutation) Where(ps ...predicate.OIDCConfig) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the OIDCConfigMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *OIDCConfigMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.OIDCConfig, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *OIDCConfigMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *OIDCConfigMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (OIDCConfig).
+func (m *OIDCConfigMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *OIDCConfigMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.provider_key != nil {
+		fields = append(fields, oidcconfig.FieldProviderKey)
+	}
+	if m.provider_name != nil {
+		fields = append(fields, oidcconfig.FieldProviderName)
+	}
+	if m.discovery_uri != nil {
+		fields = append(fields, oidcconfig.FieldDiscoveryURI)
+	}
+	if m.client_id != nil {
+		fields = append(fields, oidcconfig.FieldClientID)
+	}
+	if m.client_secret != nil {
+		fields = append(fields, oidcconfig.FieldClientSecret)
+	}
+	if m.redirect_uri != nil {
+		fields = append(fields, oidcconfig.FieldRedirectURI)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *OIDCConfigMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case oidcconfig.FieldProviderKey:
+		return m.ProviderKey()
+	case oidcconfig.FieldProviderName:
+		return m.ProviderName()
+	case oidcconfig.FieldDiscoveryURI:
+		return m.DiscoveryURI()
+	case oidcconfig.FieldClientID:
+		return m.ClientID()
+	case oidcconfig.FieldClientSecret:
+		return m.ClientSecret()
+	case oidcconfig.FieldRedirectURI:
+		return m.RedirectURI()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *OIDCConfigMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case oidcconfig.FieldProviderKey:
+		return m.OldProviderKey(ctx)
+	case oidcconfig.FieldProviderName:
+		return m.OldProviderName(ctx)
+	case oidcconfig.FieldDiscoveryURI:
+		return m.OldDiscoveryURI(ctx)
+	case oidcconfig.FieldClientID:
+		return m.OldClientID(ctx)
+	case oidcconfig.FieldClientSecret:
+		return m.OldClientSecret(ctx)
+	case oidcconfig.FieldRedirectURI:
+		return m.OldRedirectURI(ctx)
+	}
+	return nil, fmt.Errorf("unknown OIDCConfig field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *OIDCConfigMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case oidcconfig.FieldProviderKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProviderKey(v)
+		return nil
+	case oidcconfig.FieldProviderName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProviderName(v)
+		return nil
+	case oidcconfig.FieldDiscoveryURI:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDiscoveryURI(v)
+		return nil
+	case oidcconfig.FieldClientID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClientID(v)
+		return nil
+	case oidcconfig.FieldClientSecret:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClientSecret(v)
+		return nil
+	case oidcconfig.FieldRedirectURI:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRedirectURI(v)
+		return nil
+	}
+	return fmt.Errorf("unknown OIDCConfig field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *OIDCConfigMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *OIDCConfigMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *OIDCConfigMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown OIDCConfig numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *OIDCConfigMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *OIDCConfigMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *OIDCConfigMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown OIDCConfig nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *OIDCConfigMutation) ResetField(name string) error {
+	switch name {
+	case oidcconfig.FieldProviderKey:
+		m.ResetProviderKey()
+		return nil
+	case oidcconfig.FieldProviderName:
+		m.ResetProviderName()
+		return nil
+	case oidcconfig.FieldDiscoveryURI:
+		m.ResetDiscoveryURI()
+		return nil
+	case oidcconfig.FieldClientID:
+		m.ResetClientID()
+		return nil
+	case oidcconfig.FieldClientSecret:
+		m.ResetClientSecret()
+		return nil
+	case oidcconfig.FieldRedirectURI:
+		m.ResetRedirectURI()
+		return nil
+	}
+	return fmt.Errorf("unknown OIDCConfig field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *OIDCConfigMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *OIDCConfigMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *OIDCConfigMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *OIDCConfigMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *OIDCConfigMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *OIDCConfigMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *OIDCConfigMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown OIDCConfig unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *OIDCConfigMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown OIDCConfig edge %s", name)
+}
+
 // TagMutation represents an operation that mutates the Tag nodes in the graph.
 type TagMutation struct {
 	config
@@ -509,6 +1107,7 @@ type TagMutation struct {
 	typ           string
 	id            *int
 	name          *string
+	value         *string
 	clearedFields map[string]struct{}
 	agents        map[int]struct{}
 	removedagents map[int]struct{}
@@ -652,6 +1251,42 @@ func (m *TagMutation) ResetName() {
 	m.name = nil
 }
 
+// SetValue sets the "value" field.
+func (m *TagMutation) SetValue(s string) {
+	m.value = &s
+}
+
+// Value returns the value of the "value" field in the mutation.
+func (m *TagMutation) Value() (r string, exists bool) {
+	v := m.value
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldValue returns the old "value" field's value of the Tag entity.
+// If the Tag object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TagMutation) OldValue(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldValue is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldValue requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldValue: %w", err)
+	}
+	return oldValue.Value, nil
+}
+
+// ResetValue resets all changes to the "value" field.
+func (m *TagMutation) ResetValue() {
+	m.value = nil
+}
+
 // AddAgentIDs adds the "agents" edge to the Agent entity by ids.
 func (m *TagMutation) AddAgentIDs(ids ...int) {
 	if m.agents == nil {
@@ -740,9 +1375,12 @@ func (m *TagMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *TagMutation) Fields() []string {
-	fields := make([]string, 0, 1)
+	fields := make([]string, 0, 2)
 	if m.name != nil {
 		fields = append(fields, tag.FieldName)
+	}
+	if m.value != nil {
+		fields = append(fields, tag.FieldValue)
 	}
 	return fields
 }
@@ -754,6 +1392,8 @@ func (m *TagMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case tag.FieldName:
 		return m.Name()
+	case tag.FieldValue:
+		return m.Value()
 	}
 	return nil, false
 }
@@ -765,6 +1405,8 @@ func (m *TagMutation) OldField(ctx context.Context, name string) (ent.Value, err
 	switch name {
 	case tag.FieldName:
 		return m.OldName(ctx)
+	case tag.FieldValue:
+		return m.OldValue(ctx)
 	}
 	return nil, fmt.Errorf("unknown Tag field %s", name)
 }
@@ -780,6 +1422,13 @@ func (m *TagMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetName(v)
+		return nil
+	case tag.FieldValue:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetValue(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Tag field %s", name)
@@ -832,6 +1481,9 @@ func (m *TagMutation) ResetField(name string) error {
 	switch name {
 	case tag.FieldName:
 		m.ResetName()
+		return nil
+	case tag.FieldValue:
+		m.ResetValue()
 		return nil
 	}
 	return fmt.Errorf("unknown Tag field %s", name)

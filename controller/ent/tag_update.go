@@ -34,6 +34,12 @@ func (tu *TagUpdate) SetName(s string) *TagUpdate {
 	return tu
 }
 
+// SetValue sets the "value" field.
+func (tu *TagUpdate) SetValue(s string) *TagUpdate {
+	tu.mutation.SetValue(s)
+	return tu
+}
+
 // AddAgentIDs adds the "agents" edge to the Agent entity by IDs.
 func (tu *TagUpdate) AddAgentIDs(ids ...int) *TagUpdate {
 	tu.mutation.AddAgentIDs(ids...)
@@ -109,6 +115,11 @@ func (tu *TagUpdate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Tag.name": %w`, err)}
 		}
 	}
+	if v, ok := tu.mutation.Value(); ok {
+		if err := tag.ValueValidator(v); err != nil {
+			return &ValidationError{Name: "value", err: fmt.Errorf(`ent: validator failed for field "Tag.value": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -126,6 +137,9 @@ func (tu *TagUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := tu.mutation.Name(); ok {
 		_spec.SetField(tag.FieldName, field.TypeString, value)
+	}
+	if value, ok := tu.mutation.Value(); ok {
+		_spec.SetField(tag.FieldValue, field.TypeString, value)
 	}
 	if tu.mutation.AgentsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -195,6 +209,12 @@ type TagUpdateOne struct {
 // SetName sets the "name" field.
 func (tuo *TagUpdateOne) SetName(s string) *TagUpdateOne {
 	tuo.mutation.SetName(s)
+	return tuo
+}
+
+// SetValue sets the "value" field.
+func (tuo *TagUpdateOne) SetValue(s string) *TagUpdateOne {
+	tuo.mutation.SetValue(s)
 	return tuo
 }
 
@@ -286,6 +306,11 @@ func (tuo *TagUpdateOne) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Tag.name": %w`, err)}
 		}
 	}
+	if v, ok := tuo.mutation.Value(); ok {
+		if err := tag.ValueValidator(v); err != nil {
+			return &ValidationError{Name: "value", err: fmt.Errorf(`ent: validator failed for field "Tag.value": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -320,6 +345,9 @@ func (tuo *TagUpdateOne) sqlSave(ctx context.Context) (_node *Tag, err error) {
 	}
 	if value, ok := tuo.mutation.Name(); ok {
 		_spec.SetField(tag.FieldName, field.TypeString, value)
+	}
+	if value, ok := tuo.mutation.Value(); ok {
+		_spec.SetField(tag.FieldValue, field.TypeString, value)
 	}
 	if tuo.mutation.AgentsCleared() {
 		edge := &sqlgraph.EdgeSpec{

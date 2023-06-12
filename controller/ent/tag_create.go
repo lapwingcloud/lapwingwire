@@ -26,6 +26,12 @@ func (tc *TagCreate) SetName(s string) *TagCreate {
 	return tc
 }
 
+// SetValue sets the "value" field.
+func (tc *TagCreate) SetValue(s string) *TagCreate {
+	tc.mutation.SetValue(s)
+	return tc
+}
+
 // AddAgentIDs adds the "agents" edge to the Agent entity by IDs.
 func (tc *TagCreate) AddAgentIDs(ids ...int) *TagCreate {
 	tc.mutation.AddAgentIDs(ids...)
@@ -83,6 +89,14 @@ func (tc *TagCreate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Tag.name": %w`, err)}
 		}
 	}
+	if _, ok := tc.mutation.Value(); !ok {
+		return &ValidationError{Name: "value", err: errors.New(`ent: missing required field "Tag.value"`)}
+	}
+	if v, ok := tc.mutation.Value(); ok {
+		if err := tag.ValueValidator(v); err != nil {
+			return &ValidationError{Name: "value", err: fmt.Errorf(`ent: validator failed for field "Tag.value": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -112,6 +126,10 @@ func (tc *TagCreate) createSpec() (*Tag, *sqlgraph.CreateSpec) {
 	if value, ok := tc.mutation.Name(); ok {
 		_spec.SetField(tag.FieldName, field.TypeString, value)
 		_node.Name = value
+	}
+	if value, ok := tc.mutation.Value(); ok {
+		_spec.SetField(tag.FieldValue, field.TypeString, value)
+		_node.Value = value
 	}
 	if nodes := tc.mutation.AgentsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

@@ -6,7 +6,6 @@ import (
 )
 
 type Handler interface {
-	AgentHandler
 	RegisterRoutes(*chi.Mux)
 }
 
@@ -22,4 +21,7 @@ func NewHandler(db *ent.Client) Handler {
 
 func (t *handler) RegisterRoutes(r *chi.Mux) {
 	r.Put("/v1/agent", t.PutAgent)
+	r.Put("/v1/admin/oidc/config", t.PutOIDCConfig)
+	r.Get("/v1/auth/signin/{provider_key}", t.GetAuthSignin)
+	r.Get("/v1/auth/callback/{provider_key}", t.GetAuthCallback)
 }

@@ -1,6 +1,6 @@
 .PHONY: dev
 dev:
-	docker compose up -d
-	go mod tidy
-	go generate ./controller/ent
-	air --build.cmd "go build -o tmp/controller controller/main.go" --build.bin "tmp/controller" --build.full_bin "tmp/controller | jq"
+	go mod tidy -C controller
+	go generate -C controller ./
+	npm install -C controller-ui
+	docker compose up -d --remove-orphans

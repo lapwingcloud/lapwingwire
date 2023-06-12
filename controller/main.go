@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"os"
@@ -20,13 +21,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	logger := zerolog.New(zerolog.NewConsoleWriter()).With().
+	// logWriter := zerolog.NewConsoleWriter()
+	logWriter := os.Stdout
+	logger := zerolog.New(logWriter).With().
 		Timestamp().
 		Str("service", "lapwingwire-controller").
 		Str("server_hostname", hostname).
+		Str("type", "app").
 		Logger()
 
-	sqlDriver, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/lapwingwire")
+	sqlDriver, err := sql.Open("mysql", "root:root@tcp(mysql:3306)/lapwingwire?parseTime=true")
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to call sql.Open")
 	}
@@ -35,6 +39,9 @@ func main() {
 	}
 	db := ent.NewClient(ent.Driver(sqlDriver))
 	defer db.Close()
+	if err := db.Schema.Create(context.Background()); err != nil {
+		logger.Fatal().Err(err).Msg("failed creating schema resources")
+	}
 
 	router := chi.NewRouter()
 	router.Use(hlog.NewHandler(logger))
@@ -45,6 +52,7 @@ func main() {
 			clientIP = r.RemoteAddr
 		}
 		hlog.FromRequest(r).Info().
+			Str("type", "access").
 			Str("request_method", r.Method).
 			Str("request_host", r.Host).
 			Stringer("request_url", r.URL).
@@ -57,7 +65,7 @@ func main() {
 	}))
 
 	rest.NewHandler(db).RegisterRoutes(router)
-	if err = http.ListenAndServe(":3000", router); err != nil {
+	if err = http.ListenAndServe(":8080", router); err != nil {
 		logger.Fatal().Err(err).Msg("http server exited unexpectedly")
 	}
 }

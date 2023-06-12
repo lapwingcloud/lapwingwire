@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/lapwingcloud/lapwingwire/controller/ent/agent"
+	"github.com/lapwingcloud/lapwingwire/controller/ent/oidcconfig"
 	"github.com/lapwingcloud/lapwingwire/controller/ent/tag"
 )
 
@@ -74,8 +75,9 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			agent.Table: agent.ValidColumn,
-			tag.Table:   tag.ValidColumn,
+			agent.Table:      agent.ValidColumn,
+			oidcconfig.Table: oidcconfig.ValidColumn,
+			tag.Table:        tag.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

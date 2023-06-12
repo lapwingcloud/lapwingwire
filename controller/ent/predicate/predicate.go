@@ -9,5 +9,8 @@ import (
 // Agent is the predicate function for agent builders.
 type Agent func(*sql.Selector)
 
+// OIDCConfig is the predicate function for oidcconfig builders.
+type OIDCConfig func(*sql.Selector)
+
 // Tag is the predicate function for tag builders.
 type Tag func(*sql.Selector)

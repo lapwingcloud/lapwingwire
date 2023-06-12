@@ -14,7 +14,7 @@ type Agent struct {
 
 func (Agent) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("hostname").NotEmpty().Unique(),
+		field.String("hostname").NotEmpty(),
 		field.Time("created_at").Default(time.Now),
 	}
 }

@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/lapwingcloud/lapwingwire/controller/ent/agent"
+	"github.com/lapwingcloud/lapwingwire/controller/ent/oidcconfig"
 	"github.com/lapwingcloud/lapwingwire/controller/ent/tag"
 )
 
@@ -25,6 +26,8 @@ type Client struct {
 	Schema *migrate.Schema
 	// Agent is the client for interacting with the Agent builders.
 	Agent *AgentClient
+	// OIDCConfig is the client for interacting with the OIDCConfig builders.
+	OIDCConfig *OIDCConfigClient
 	// Tag is the client for interacting with the Tag builders.
 	Tag *TagClient
 }
@@ -41,6 +44,7 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Agent = NewAgentClient(c.config)
+	c.OIDCConfig = NewOIDCConfigClient(c.config)
 	c.Tag = NewTagClient(c.config)
 }
 
@@ -122,10 +126,11 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:    ctx,
-		config: cfg,
-		Agent:  NewAgentClient(cfg),
-		Tag:    NewTagClient(cfg),
+		ctx:        ctx,
+		config:     cfg,
+		Agent:      NewAgentClient(cfg),
+		OIDCConfig: NewOIDCConfigClient(cfg),
+		Tag:        NewTagClient(cfg),
 	}, nil
 }
 
@@ -143,10 +148,11 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:    ctx,
-		config: cfg,
-		Agent:  NewAgentClient(cfg),
-		Tag:    NewTagClient(cfg),
+		ctx:        ctx,
+		config:     cfg,
+		Agent:      NewAgentClient(cfg),
+		OIDCConfig: NewOIDCConfigClient(cfg),
+		Tag:        NewTagClient(cfg),
 	}, nil
 }
 
@@ -176,6 +182,7 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	c.Agent.Use(hooks...)
+	c.OIDCConfig.Use(hooks...)
 	c.Tag.Use(hooks...)
 }
 
@@ -183,6 +190,7 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	c.Agent.Intercept(interceptors...)
+	c.OIDCConfig.Intercept(interceptors...)
 	c.Tag.Intercept(interceptors...)
 }
 
@@ -191,6 +199,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *AgentMutation:
 		return c.Agent.mutate(ctx, m)
+	case *OIDCConfigMutation:
+		return c.OIDCConfig.mutate(ctx, m)
 	case *TagMutation:
 		return c.Tag.mutate(ctx, m)
 	default:
@@ -332,6 +342,124 @@ func (c *AgentClient) mutate(ctx context.Context, m *AgentMutation) (Value, erro
 	}
 }
 
+// OIDCConfigClient is a client for the OIDCConfig schema.
+type OIDCConfigClient struct {
+	config
+}
+
+// NewOIDCConfigClient returns a client for the OIDCConfig from the given config.
+func NewOIDCConfigClient(c config) *OIDCConfigClient {
+	return &OIDCConfigClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `oidcconfig.Hooks(f(g(h())))`.
+func (c *OIDCConfigClient) Use(hooks ...Hook) {
+	c.hooks.OIDCConfig = append(c.hooks.OIDCConfig, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `oidcconfig.Intercept(f(g(h())))`.
+func (c *OIDCConfigClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OIDCConfig = append(c.inters.OIDCConfig, interceptors...)
+}
+
+// Create returns a builder for creating a OIDCConfig entity.
+func (c *OIDCConfigClient) Create() *OIDCConfigCreate {
+	mutation := newOIDCConfigMutation(c.config, OpCreate)
+	return &OIDCConfigCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OIDCConfig entities.
+func (c *OIDCConfigClient) CreateBulk(builders ...*OIDCConfigCreate) *OIDCConfigCreateBulk {
+	return &OIDCConfigCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OIDCConfig.
+func (c *OIDCConfigClient) Update() *OIDCConfigUpdate {
+	mutation := newOIDCConfigMutation(c.config, OpUpdate)
+	return &OIDCConfigUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OIDCConfigClient) UpdateOne(oc *OIDCConfig) *OIDCConfigUpdateOne {
+	mutation := newOIDCConfigMutation(c.config, OpUpdateOne, withOIDCConfig(oc))
+	return &OIDCConfigUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OIDCConfigClient) UpdateOneID(id int) *OIDCConfigUpdateOne {
+	mutation := newOIDCConfigMutation(c.config, OpUpdateOne, withOIDCConfigID(id))
+	return &OIDCConfigUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OIDCConfig.
+func (c *OIDCConfigClient) Delete() *OIDCConfigDelete {
+	mutation := newOIDCConfigMutation(c.config, OpDelete)
+	return &OIDCConfigDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OIDCConfigClient) DeleteOne(oc *OIDCConfig) *OIDCConfigDeleteOne {
+	return c.DeleteOneID(oc.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OIDCConfigClient) DeleteOneID(id int) *OIDCConfigDeleteOne {
+	builder := c.Delete().Where(oidcconfig.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OIDCConfigDeleteOne{builder}
+}
+
+// Query returns a query builder for OIDCConfig.
+func (c *OIDCConfigClient) Query() *OIDCConfigQuery {
+	return &OIDCConfigQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOIDCConfig},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OIDCConfig entity by its id.
+func (c *OIDCConfigClient) Get(ctx context.Context, id int) (*OIDCConfig, error) {
+	return c.Query().Where(oidcconfig.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OIDCConfigClient) GetX(ctx context.Context, id int) *OIDCConfig {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *OIDCConfigClient) Hooks() []Hook {
+	return c.hooks.OIDCConfig
+}
+
+// Interceptors returns the client interceptors.
+func (c *OIDCConfigClient) Interceptors() []Interceptor {
+	return c.inters.OIDCConfig
+}
+
+func (c *OIDCConfigClient) mutate(ctx context.Context, m *OIDCConfigMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OIDCConfigCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OIDCConfigUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OIDCConfigUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OIDCConfigDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OIDCConfig mutation op: %q", m.Op())
+	}
+}
+
 // TagClient is a client for the Tag schema.
 type TagClient struct {
 	config
@@ -469,9 +597,9 @@ func (c *TagClient) mutate(ctx context.Context, m *TagMutation) (Value, error) {
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Agent, Tag []ent.Hook
+		Agent, OIDCConfig, Tag []ent.Hook
 	}
 	inters struct {
-		Agent, Tag []ent.Interceptor
+		Agent, OIDCConfig, Tag []ent.Interceptor
 	}
 )

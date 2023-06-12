@@ -1,13 +1,83 @@
 services:
   mysql:
     image: mysql:8
-    restart: always
+    restart: unless-stopped
     environment:
       MYSQL_DATABASE: 'lapwingwire'
       MYSQL_ROOT_PASSWORD: 'root'
     ports:
-      - '127.0.0.1:3306:3306'
+      - '3306:3306'
     volumes:
-      - mysql-data:/var/lib/mysql
+      - type: volume
+        source: mysql-data
+        target: /var/lib/mysql
+  hydra-migrate:
+    image: oryd/hydra:v2.1.2
+    restart: on-failure
+    command: migrate -c /etc/hydra/hydra.yaml sql -e --yes
+    environment:
+      - DSN=mysql://root:root@tcp(mysql:3306)/hydra?max_conns=20&max_idle_conns=4
+    volumes:
+      - type: bind
+        source: ./dev/hydra/hydra.yaml
+        target: /etc/hydra/hydra.yaml
+        read_only: true
+    depends_on:
+      - mysql
+  hydra:
+    image: oryd/hydra:v2.1.2
+    restart: unless-stopped
+    command: serve -c /etc/hydra/hydra.yaml all --dev
+    environment:
+      - DSN=mysql://root:root@tcp(mysql:3306)/hydra?max_conns=20&max_idle_conns=4
+    expose:
+      - "4444"
+      - "4445"
+    volumes:
+      - type: bind
+        source: ./dev/hydra/hydra.yaml
+        target: /etc/hydra/hydra.yaml
+        read_only: true
+    depends_on:
+      - hydra-migrate
+  controller:
+    image: cosmtrek/air:v1.44.0
+    restart: unless-stopped
+    working_dir: /code/controller
+    environment:
+      - air_wd=/code/controller
+    expose:
+      - "8080"
+    volumes:
+      - type: bind
+        source: ./controller
+        target: /code/controller
+    depends_on:
+      - mysql
+  controller-ui:
+    image: node:20
+    restart: unless-stopped
+    command: npm run dev
+    working_dir: /code/controller-ui
+    expose:
+      - "3000"
+    volumes:
+      - type: bind
+        source: ./controller-ui
+        target: /code/controller-ui
+  nginx:
+    image: nginx:1.24
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - type: bind
+        source: ./dev/nginx/nginx.conf
+        target: /etc/nginx/nginx.conf
+        read_only: true
+    depends_on:
+      - hydra
+      - controller
+      - controller-ui
 volumes:
   mysql-data:
